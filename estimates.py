@@ -2,63 +2,62 @@ import math
 from functools import reduce
 import numpy as np
 
+from EstimateResult import EstimateResult
+from constants import *
 
-def get_theoretical_estimates(n, m, lambda_value, mu, v):
+
+def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
+    estimate_result = EstimateResult()
+    estimate_result.set_estimate_type(THEORETICAL_ESTIMATE)
+
     # Коэффицент загрузки
     ro = lambda_value / mu
     beta = v / mu
 
     # Финальные вероятности состояний
-    probabilities_list = []
+    estimate_result.probabilities_list = []
 
     p0 = np.sum((math.pow(ro, i)) / (math.factorial(i)) for i in range(n + 1))
 
-    sum = np.sum([ro ** i / reduce(
+    sum = np.sum([math.pow(ro, i) / reduce(
         lambda prod, x: prod * x, [(n + l * beta) for l in range(1, i + 1)]
     ) for i in range(1, m + 1)])
 
     p0 += ((math.pow(ro, n)) / (math.factorial(n))) * sum
     p0 = math.pow(p0, -1)
 
-    probabilities_list.append(p0)
+    estimate_result.probabilities_list.append(p0)
 
     for k in range(1, n + 1):
-        probabilities_list.append((math.pow(ro, k) / math.factorial(k)) * p0)
+        estimate_result.probabilities_list.append((math.pow(ro, k) / math.factorial(k)) * p0)
 
     for i in range(1, m + 1):
-        probabilities_list.append(probabilities_list[n - 1] * (
+        estimate_result.probabilities_list.append(estimate_result.probabilities_list[n - 1] * (
                 math.pow(ro, i) / reduce(lambda prod, x: prod * x, [(n + l * beta) for l in range(1, i + 1)])))
 
     # Вероятность отказа
-    p_reject = probabilities_list[n + m]
+    estimate_result.p_reject = estimate_result.probabilities_list[n + m]
 
     # Относительная пропускная способность (вероятность обслуживания)
-    Q = 1 - p_reject
+    estimate_result.Q = 1 - estimate_result.p_reject
 
     # Абсолютная пропускная способность
-    A = lambda_value * Q
+    estimate_result.A = lambda_value * estimate_result.Q
 
     # Среднее число заявок, находящихся в очереди
-    L_queue = np.sum(i * probabilities_list[n + i] for i in range(1, m + 1))
+    estimate_result.L_queue = np.sum(i * estimate_result.probabilities_list[n + i] for i in range(1, m + 1))
 
     # Среднее число заявок, обслуживаемых в СМО
-    L_system = np.sum(k * probabilities_list[k] for k in range(1, n + 1)) + np.sum(
-        (n + i) * probabilities_list[n + i] for i in range(1, m + 1))
+    estimate_result.L_system = np.sum(k * estimate_result.probabilities_list[k] for k in range(1, n + 1)) + np.sum(
+        (n + i) * estimate_result.probabilities_list[n + i] for i in range(1, m + 1))
 
     # Среднее время пребывания в системе
-    t_system = L_system / lambda_value
+    estimate_result.t_system = estimate_result.L_system / lambda_value
 
     # Среднее время пребывания в очереди
-    t_queue = L_queue / lambda_value
+    estimate_result.t_queue = estimate_result.L_queue / lambda_value
 
-    print("\nФинальные вероятности состояний: ")
-    for index in range(len(probabilities_list)):
-        print(f"p{index}: {probabilities_list[index]}")
+    # Среднее число занятых каналов
+    estimate_result.busy_channels = estimate_result.Q * ro
 
-    print(f"\nВероятность отказа: {p_reject}")
-    print(f"Среднее число заявок в очереди: {L_queue}")
-    print(f"Среднее число заявок в системе: {L_system}")
-    print(f"Относительная пропускная способность(Q): {Q}")
-    print(f"Абсолютная пропускная способность(A):    {A}")
-    print(f"Среднее время пребывания в системе: {t_system}")
-    print(f"Среднее время пребывания в очереди: {t_queue}")
+    return estimate_result
