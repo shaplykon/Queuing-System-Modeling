@@ -1,4 +1,4 @@
-from EstimateResult import EstimateResult
+from models.EstimateResult import EstimateResult
 
 
 def print_estimate_result(estimate: EstimateResult):

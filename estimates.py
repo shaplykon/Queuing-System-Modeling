@@ -2,8 +2,43 @@ import math
 from functools import reduce
 import numpy as np
 
-from EstimateResult import EstimateResult
+from models.EstimateResult import EstimateResult
+from models.QueuingSystem import QueuingSystem
+from models.SimulationResult import SimulationResult
 from constants import *
+
+
+def get_empirical_estimates(simulation_result: SimulationResult, system: QueuingSystem):
+    estimate_result = EstimateResult()
+    estimate_result.set_estimate_type(EMPIRICAL_ESTIMATE)
+
+    estimate_result.p_reject = (simulation_result.common_requests -
+                                simulation_result.processed_requests) / simulation_result.common_requests
+
+    estimate_result.A = simulation_result.processed_requests / SIMULATION_TIME
+
+    for probability_index in range(system.n + system.m + 1):
+        estimate_result.probabilities_list.append(
+            simulation_result.busy_channels.count(probability_index + 1) / len(simulation_result.busy_channels))
+
+    # Среднее количество заявок в очереди на основании финальных вероятностей состояний
+    # с соответствующими весами
+    probability_weight = 0
+    for index in range(system.n, system.m + system.n + 1):
+        estimate_result.L_queue += (probability_weight * estimate_result.probabilities_list[index])
+        probability_weight += 1
+
+    estimate_result.L_system = np.sum(simulation_result.count_requests_in_system) / len(
+        simulation_result.count_requests_in_system)
+
+    estimate_result.t_queue = np.sum(simulation_result.time_requests_in_queue) / simulation_result.common_requests
+    estimate_result.t_system = np.sum(simulation_result.time_requests_in_system) / simulation_result.common_requests
+
+    estimate_result.busy_channels = estimate_result.L_system
+
+    # Относительная пропускная способность (вероятность обслуживания)
+    estimate_result.Q = 1 - estimate_result.p_reject
+    return estimate_result
 
 
 def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
@@ -32,7 +67,7 @@ def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
         estimate_result.probabilities_list.append((math.pow(ro, k) / math.factorial(k)) * p0)
 
     for i in range(1, m + 1):
-        estimate_result.probabilities_list.append(estimate_result.probabilities_list[n - 1] * (
+        estimate_result.probabilities_list.append(estimate_result.probabilities_list[n] * (
                 math.pow(ro, i) / reduce(lambda prod, x: prod * x, [(n + l * beta) for l in range(1, i + 1)])))
 
     # Вероятность отказа
@@ -61,3 +96,19 @@ def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
     estimate_result.busy_channels = estimate_result.Q * ro
 
     return estimate_result
+
+
+def compare_estimates(theoretical: EstimateResult, empirical: EstimateResult):
+    estimates_diff = EstimateResult()
+    estimates_diff.estimate_type = COMPARATIVE_ESTIMATE
+    estimates_diff.probabilities_list = np.absolute(np.subtract(theoretical.probabilities_list, empirical.probabilities_list))
+    estimates_diff.p_reject = math.fabs(empirical.p_reject - theoretical.p_reject)
+    estimates_diff.Q = math.fabs(empirical.Q - theoretical.Q)
+    estimates_diff.A = math.fabs(empirical.A - theoretical.A)
+    estimates_diff.busy_channels = math.fabs(empirical.busy_channels - theoretical.busy_channels)
+    estimates_diff.t_queue = math.fabs(empirical.t_queue - theoretical.t_queue)
+    estimates_diff.t_system = math.fabs(empirical.t_system - theoretical.t_system)
+    estimates_diff.L_queue = math.fabs(empirical.L_queue - theoretical.L_queue)
+    estimates_diff.L_system = math.fabs(empirical.L_system - theoretical.L_system)
+
+    return estimates_diff

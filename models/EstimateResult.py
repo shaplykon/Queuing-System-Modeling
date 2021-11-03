@@ -16,3 +16,4 @@ class EstimateResult:
 
     def set_estimate_type(self, estimate_type):
         self.estimate_type = estimate_type
+

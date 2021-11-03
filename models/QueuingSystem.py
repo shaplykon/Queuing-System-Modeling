@@ -8,6 +8,7 @@ class QueuingSystem:
     Содержит параметры СМО и методы для выполнения операций за время,
     зависящее от интенсивности потока осуживания
     """
+
     def __init__(self, n, m, lambda_value, mu, v, environment: simpy.Environment):
         """
         :param n: Число каналов
@@ -24,6 +25,3 @@ class QueuingSystem:
         self.v = v
         self.environment = environment
         self.resource = simpy.Resource(self.environment, n)
-
-    def action(self):
-        yield self.environment.timeout(np.random.exponential(1 / self.mu))
