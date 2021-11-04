@@ -1,12 +1,9 @@
 import simpy
-import numpy as np
 
 
 class QueuingSystem:
     """
     Класс, представляющий модель системы массового обслуживания.
-    Содержит параметры СМО и методы для выполнения операций за время,
-    зависящее от интенсивности потока осуживания
     """
 
     def __init__(self, n, m, lambda_value, mu, v, environment: simpy.Environment):

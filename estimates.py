@@ -8,14 +8,14 @@ from models.SimulationResult import SimulationResult
 from constants import *
 
 
-def get_empirical_estimates(simulation_result: SimulationResult, system: QueuingSystem):
+def get_empirical_estimates(simulation_result: SimulationResult, system: QueuingSystem, simulation_time: int):
     estimate_result = EstimateResult()
     estimate_result.set_estimate_type(EMPIRICAL_ESTIMATE)
 
     estimate_result.p_reject = (simulation_result.common_requests -
                                 simulation_result.processed_requests) / simulation_result.common_requests
 
-    estimate_result.A = simulation_result.processed_requests / SIMULATION_TIME
+    estimate_result.A = simulation_result.processed_requests / simulation_time
 
     for probability_index in range(system.n + system.m + 1):
         estimate_result.probabilities_list.append(
@@ -98,9 +98,11 @@ def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
     return estimate_result
 
 
-def compare_estimates(theoretical: EstimateResult, empirical: EstimateResult):
+def compare_estimates(theoretical: EstimateResult, empirical: EstimateResult, simulate_time: int) -> EstimateResult:
     estimates_diff = EstimateResult()
     estimates_diff.estimate_type = COMPARATIVE_ESTIMATE
+    estimates_diff.simulation_time = simulate_time
+
     estimates_diff.probabilities_list = np.absolute(np.subtract(theoretical.probabilities_list, empirical.probabilities_list))
     estimates_diff.p_reject = math.fabs(empirical.p_reject - theoretical.p_reject)
     estimates_diff.Q = math.fabs(empirical.Q - theoretical.Q)
