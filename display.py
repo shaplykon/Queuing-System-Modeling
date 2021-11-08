@@ -1,11 +1,31 @@
 from models import EstimateResult, QueuingSystem
-from constants import COMPARATIVE_ESTIMATE, MU_SYMBOL, EPSILON
+from constants import COMPARATIVE_ESTIMATE, MU_SYMBOL, EPSILON, ERlANG_DISTRIBUTION_COEFFICIENTS
 from colorama import Fore
 import colorama
 import matplotlib.pyplot as plt
 import numpy as np
 
 colorama.init(autoreset=True)
+
+
+def show_erlang_coefficient_dependence_plot(empirical_estimates: list[EstimateResult], system: QueuingSystem):
+    plt.title(f"Зависимость эмпирических характеристик СМО от порядка распределения Эрланга \nдля системы с"
+              f" параметрами n={system.n}, m={system.m}, λ={system.lambda_value}, {MU_SYMBOL}={system.mu}, v={system.v}")
+
+    plt.xlabel("Порядок распределения Эрланга(K)")
+    plt.ylabel("Значения характеристик")
+
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.A for estimate in empirical_estimates], label=f"A")
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.Q for estimate in empirical_estimates], label=f"Q")
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.L_queue for estimate in empirical_estimates], label=f"Кол-во заявок в системе")
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.L_system for estimate in empirical_estimates], label=f"Кол-во заявок в системе")
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.t_system for estimate in empirical_estimates], label=f"Время в системе")
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.t_queue for estimate in empirical_estimates], label=f"Время в осереди")
+    plt.plot(ERlANG_DISTRIBUTION_COEFFICIENTS, [estimate.p_reject for estimate in empirical_estimates],
+             label=f"Вероятность отказа")
+
+    plt.legend()
+    plt.show()
 
 
 def show_lambda_dependence_plot(empirical_estimates: list[EstimateResult], system: QueuingSystem):
@@ -42,7 +62,7 @@ def show_time_dependence_plot(estimates_diff: list[EstimateResult], system: Queu
     plt.show()
 
 
-def print_estimate_result(estimate: EstimateResult):
+def print_estimate_result(estimate: EstimateResult, is_single_channel=False):
     print(f"\n{estimate.estimate_type} оценка")
     if estimate.estimate_type == COMPARATIVE_ESTIMATE:
         print(Fore.YELLOW + "*значения абсолютных отклонений теоретической и эмпирической оценок")
@@ -67,23 +87,26 @@ def print_estimate_result(estimate: EstimateResult):
               f"{estimate.t_system}")
         print(f"{Fore.GREEN if estimate.t_queue <= EPSILON else Fore.RED}Среднее время пребывания в очереди: "
               f"{estimate.t_queue}")
-        print(f"{Fore.GREEN if estimate.busy_channels <= EPSILON else Fore.RED}Среднее число занятых каналов: "
-              f"{estimate.busy_channels}\n")
+        if not is_single_channel:
+            print(f"{Fore.GREEN if estimate.busy_channels <= EPSILON else Fore.RED}Среднее число занятых каналов: "
+                  f"{estimate.busy_channels}\n")
 
         try:
-            assert estimate.busy_channels <= EPSILON
+            assert estimate.p_reject <= EPSILON
             assert estimate.t_queue <= EPSILON
             assert estimate.t_system <= EPSILON
             assert estimate.A <= EPSILON
             assert estimate.Q <= EPSILON
             assert estimate.L_queue <= EPSILON
             assert estimate.L_system <= EPSILON
-            assert estimate.p_reject <= EPSILON
+            if not is_single_channel:
+                assert estimate.busy_channels <= EPSILON
 
-            print(f"{Fore.GREEN}Смоделированная СМО НЕ превышает установленного абсолютного отклонения ε({EPSILON})")
+            print(f"\n{Fore.GREEN}Смоделированная СМО НЕ превышает установленного абсолютного отклонения ε({EPSILON})")
         except AssertionError:
-            print(f"{Fore.RED}Эмпирические характеристики СМО в результате моделирования имеют большее отклонение от\n"
-                  f"теоретических характеристик, чем установленное ε({EPSILON})")
+            print(
+                f"\n{Fore.RED}Эмпирические характеристики СМО в результате моделирования имеют большее отклонение от\n"
+                f"теоретических характеристик, чем установленное ε({EPSILON})")
 
     else:
         print(f"\nВероятность отказа: {estimate.p_reject}")

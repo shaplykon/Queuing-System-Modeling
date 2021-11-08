@@ -41,7 +41,7 @@ def get_empirical_estimates(simulation_result: SimulationResult, system: Queuing
     return estimate_result
 
 
-def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
+def get_theoretical_estimates_for_multi_channel(n, m, lambda_value, mu, v) -> EstimateResult:
     estimate_result = EstimateResult()
     estimate_result.set_estimate_type(THEORETICAL_ESTIMATE)
 
@@ -98,12 +98,44 @@ def get_theoretical_estimates(n, m, lambda_value, mu, v) -> EstimateResult:
     return estimate_result
 
 
+def get_theoretical_estimates_for_single_channel(m, lambda_value, mu, k):
+    estimate_result = EstimateResult()
+    estimate_result.set_estimate_type(THEORETICAL_ESTIMATE)
+
+    mu = mu / k
+
+    # Коэффицент загрузки
+    ro = lambda_value / mu
+
+    estimate_result.probabilities_list.append((1 - ro) / (1 - math.pow(ro, m + 2)))
+
+    for i in range(1, m + 2):
+        estimate_result.probabilities_list.append(math.pow(ro, i) * estimate_result.probabilities_list[0])
+
+    estimate_result.p_reject = estimate_result.probabilities_list[m + 1]
+
+    estimate_result.Q = 1 - estimate_result.p_reject
+    estimate_result.A = lambda_value * estimate_result.Q
+
+    for i in range(1, m + 1):
+        estimate_result.L_queue += (i * estimate_result.probabilities_list[i + 1])
+
+    estimate_result.L_system = ro * estimate_result.Q + estimate_result.L_queue
+
+    estimate_result.t_system = estimate_result.L_system / lambda_value
+
+    estimate_result.t_queue = estimate_result.L_queue / lambda_value
+
+    return estimate_result
+
+
 def compare_estimates(theoretical: EstimateResult, empirical: EstimateResult, simulate_time: int) -> EstimateResult:
     estimates_diff = EstimateResult()
     estimates_diff.estimate_type = COMPARATIVE_ESTIMATE
     estimates_diff.simulation_time = simulate_time
 
-    estimates_diff.probabilities_list = np.absolute(np.subtract(theoretical.probabilities_list, empirical.probabilities_list))
+    estimates_diff.probabilities_list = np.absolute(
+        np.subtract(theoretical.probabilities_list, empirical.probabilities_list))
     estimates_diff.p_reject = math.fabs(empirical.p_reject - theoretical.p_reject)
     estimates_diff.Q = math.fabs(empirical.Q - theoretical.Q)
     estimates_diff.A = math.fabs(empirical.A - theoretical.A)
