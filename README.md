@@ -14,3 +14,9 @@
 
 :white_check_mark: **Анализ зависимости времени нахождения заявки в очереди от интенсивности потока:**
 ![](https://raw.githubusercontent.com/shaplykon/Queuing-System-Modeling/master/output/images/1_test_queue_lambda_dependence.png)
+
+:white_check_mark: **Индивидуальное задание.**
+В качестве индивидуального задания была смоделирована одноканальная СМО с ограниченной длиной очереди. Поток заявок - простейший, 
+время обслуживания распределено по обобщённому **закону Эрланга**. В рамках симуляции проведён анализ зависимости эмпирических характеристик 
+от значение коэффицента Эрланга(K):
+![](https://raw.githubusercontent.com/shaplykon/Queuing-System-Modeling/master/output/images/individual_test_erlang_dependence.png)
